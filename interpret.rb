@@ -1,0 +1,1 @@
+puts eval($<.read.gsub(/[A-Z?]+/, "AWOO"=>"=", 'GRRR'=>"while", "YIP"=>"<", "BOW"=>"do", "RUF?"=>"if", "YAP"=>">", "VUH"=>"then", "BARK"=>"-", "ROWH"=>"else", "WOOF"=>"+", "ARF"=>"*", "ARRUF"=>"end", "BORF"=>"end"))
