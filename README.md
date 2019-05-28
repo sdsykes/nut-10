@@ -8,31 +8,34 @@ Reverse engineer Doggolang from example code and example results. This turns out
 puts eval($<.read.gsub(/[A-Z?]+/, "AWOO"=>"=", 'GRRR'=>"while", "YIP"=>"<", "BOW"=>"do", "RUF?"=>"if", "YAP"=>">", "VUH"=>"then", "BARK"=>"-", "ROWH"=>"else", "WOOF"=>"+", "ARF"=>"*", "ARRUF"=>"end", "BORF"=>"end"))
 ```
 
-I wrote a simple test harness with the 4 example programs, and added the challenge program (samantha.doggolang) to the tests as the 5th once the result was known.
+See [interpret.rb](https://github.com/sdsykes/nut-10/blob/master/interpret.rb)
+
+I wrote a simple test harness with the 4 example programs, and added the challenge program (samantha.doggolang) to the tests as the 5th once the result was known. I also added a test for operator precedence, for reasons that will become clear later.
 
 ```
-$ ruby test.rb 
+$ ruby test.rb interpret
 PASS 1
 PASS 2
 PASS 3
 PASS 4
 PASS 5
+PASS 6
 ```
 
 This seemed too easy. I wonder...
 
-In Doggolang we don't have to worry about operator precedence, if-then without an else, any kind of compound expressions, there is an extremely limited set of available operations, no globals, no strings, and all variables are ints, positive ones at that. In short it's almost the simplest turing-complete language you can imagine.
+In Doggolang we don't have to worry about globals, strings, arrays, if-then without an else, any kind of compound expressions, there is an extremely limited set of available operations, and all variables are ints, positive ones at that. In short it's almost the simplest turing-complete language you can imagine.
 
 Could I write a compiler for Doggolang? Am I insane?
 
-Let's get started.
+Let's get started. I will continue in Ruby.
 
 Input will be Doggolang source code, output will be x86_64 assembly. Then we can pass it to the system assembler and loader, orchestrated by cc.
 
 Strategy is as follows:
 
 1. Tokenize.
-2. Parse into an abstract syntax tree.
+2. Parse into an abstract syntax tree (AST).
 3. Generate code from that.
 
 #### Tokenization
@@ -41,7 +44,9 @@ Tokenization of Doggolang is a case of just splitting on whitespace. For my own 
 #### Parse
 A simple recursive descent parser. The rules for Doggolang indicate that everything is either a "block" (which is a sequence of statements), a "statement" (which is an assignment or an if or while, or a plain variable name for the final value), or an "expression" (which gives a numerical or boolean result).
 
-The whole program is in fact a block, so all we need to do is call parse_block and this should return the complete syntax tree. All in all the parsing is not complex, and is achieved in less than 60 lines of code. Initially I did not support operator precedence as none of the examples would be affected by it, but it wasn't that hard to add and I am happier with the result.
+The whole program is in fact a block, so all we need to do is call parse_block and this should return the complete syntax tree. All in all the parsing is not complex, and is achieved in less than 60 lines of code. 
+
+Initially I did not support operator precedence as none of the given examples are affected by it, but it wasn't that hard to add and I am happier with the result. We do this by moving an operator to the top of a node subtree when we encounter it and the preceding operator was of higher precedence.
 
 #### Generate
 The code generator walks the ast and generates a small amount of assembly for each node.
@@ -61,15 +66,16 @@ With a small amount of care the generated assembly will work both on Mac and Lin
 And finally (and after admittedly a fair bit of debugging) it does in fact work:
 
 ```
-$ ruby test.rb 
+$ ruby test.rb ruby
 PASS 1
 PASS 2
 PASS 3
 PASS 4
 PASS 5
+PASS 6
 ```
 
-The whole compiler is approximately 175 SLOC.
+The whole compiler is approximately 175 SLOC. You can find it [here](https://github.com/sdsykes/nut-10/blob/master/compile.rb).
 
 #### Performance
 
@@ -99,6 +105,24 @@ sys	0m0.003s
 ```
 
 The ruby interpreter is pretty good, but the compiled version runs in about one thirteenth of the time.
+
+#### Why stop there?
+
+I thought it would be interesting to rewrite the compiler in a type safe language, I picked Go. You can look at it [here](https://github.com/sdsykes/nut-10/blob/master/compile.go).
+
+Notice the Tokens, Node and State structs. It's pretty much the same aalgorithm-wise as the Ruby compiler, and generates exactly the same assembly.
+
+```
+$ ruby test.rb go
+PASS 1
+PASS 2
+PASS 3
+PASS 4
+PASS 5
+PASS 6
+```
+
+Go is a bit slower to run than Ruby, so the compilations are a noticeably slower. I'm happy with it in general, but it ends up being a bit longer and more wordy than the Ruby solution. In the end I think the Ruby solution is nicer to read, and is more elegant.
 
 ## The answer
 
