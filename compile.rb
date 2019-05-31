@@ -43,7 +43,7 @@ def parse_block(tokens)
       end
     end
   end
-  statements
+  statements.compact
 end
 
 OPERATORS = {"+": :plus, "-": :minus, "*": :times, ">": :gt, "<": :lt}
