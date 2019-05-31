@@ -8,7 +8,7 @@ Reverse engineer Doggolang from example code and example results. This turns out
 puts eval($<.read.gsub(/[A-Z?]+/, "AWOO"=>"=", 'GRRR'=>"while", "YIP"=>"<", "BOW"=>"do", "RUF?"=>"if", "YAP"=>">", "VUH"=>"then", "BARK"=>"-", "ROWH"=>"else", "WOOF"=>"+", "ARF"=>"*", "ARRUF"=>"end", "BORF"=>"end"))
 ```
 
-See [interpret.rb](https://github.com/sdsykes/nut-10/blob/master/interpret.rb)
+Of course it uses eval, but why not? See [interpret.rb](https://github.com/sdsykes/nut-10/blob/master/interpret.rb)
 
 I wrote a simple test harness with the 4 example programs, and added the challenge program (samantha.doggolang) to the tests as the 5th once the result was known. I also added a test for operator precedence, for reasons that will become clear later.
 
