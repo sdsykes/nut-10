@@ -40,7 +40,7 @@ Tokenization of Doggolang is a case of just splitting on whitespace. For my own 
 
 A simple recursive descent parser. The rules for Doggolang indicate that everything is either a "block" (which is a sequence of statements), a "statement" (which is an assignment or an if or while, or a plain variable name for the final value), or an "expression" (which gives a numerical or boolean result).
 
-The whole program is in fact a block, so all we need to do is call parse_block and this should return the complete syntax tree. All in all the parsing is not complex, and is achieved in less than 60 lines of code. 
+The whole program is in fact a block, so all we need to do is call parse_block and this should return the complete syntax tree. All in all the parsing is not complex, and is achieved in less than 65 lines of code. 
 
 Initially I did not support operator precedence as none of the given examples are affected by it, but it wasn't that hard to add and I am happier with the result. So in the interpreter, minus and plus have a lower precedence than multiplication. This is done by moving an operator to the top of a node subtree when we encounter it if the preceding operator was of higher or equal precedence.
 
@@ -58,9 +58,39 @@ Initially I did not support operator precedence as none of the given examples ar
 
 This transformation must be executed recursively on the left subtree.
 
+Note that a node may either be a Hash containing whatever the node needs (typically an lvalue and rvalue), or an array of nodes that will be interpreted in order.
+
+We'll end up with a structure something like this (this is the parse tree from test2.doggolang):
+
+```
+[{:type=>:assign,
+  :lvalue=>{:type=>:identifier, :value=>"roi"},
+  :rvalue=>{:type=>:integer, :value=>5}},
+ {:type=>:if,
+  :condition=>
+   {:type=>:gt,
+    :lvalue=>{:type=>:identifier, :value=>"roi"},
+    :rvalue=>{:type=>:integer, :value=>2}},
+  :then=>
+   [{:type=>:assign,
+     :lvalue=>{:type=>:identifier, :value=>"roi"},
+     :rvalue=>
+      {:type=>:times,
+       :lvalue=>{:type=>:identifier, :value=>"roi"},
+       :rvalue=>{:type=>:integer, :value=>3}}}],
+  :else=>
+   [{:type=>:assign,
+     :lvalue=>{:type=>:identifier, :value=>"roi"},
+     :rvalue=>
+      {:type=>:plus,
+       :lvalue=>{:type=>:identifier, :value=>"roi"},
+       :rvalue=>{:type=>:integer, :value=>100}}}]},
+ {:type=>:identifier, :value=>"roi"}]
+```
+
 #### Interpret
 
-At this point, we are on the home stretch. It's now simply coding what to do for each possible operator and keyword. Note that a node may either be a Hash containing whatever the node needs (typically an lvalue and rvalue), or an array of nodes that will be interpreted in order.
+At this point, we are on the home stretch. It's now simply a matter of coding what to do for each possible operator and keyword (and executing the nodes in order in the case of an array).
 
 This is the finished interpreter: [interpret2.rb](https://github.com/sdsykes/nut-10/blob/master/interpret2.rb).
 
@@ -105,7 +135,7 @@ With a small amount of care the generated assembly will work both on Mac and Lin
 And finally (and after admittedly a fair bit of debugging) it does in fact work:
 
 ```
-$ ruby test.rb ruby
+$ ruby test.rb compile_ruby
 PASS 1
 PASS 2
 PASS 3
@@ -120,7 +150,7 @@ The whole compiler is approximately 180 SLOC. You can find it [here](https://git
 
 Once you have compiled the Doggolang source code, the execution should be crazy fast, there isn't a lot of wastage in the assembler output (although an optimisation step could of course improve things further).
 
-Let's benchmark it. I have a short program (based on samantha) set up to loop a million times. First with the interpreter:
+Let's benchmark it against the interpreter. I have a short program (based on samantha) set up to loop a million times. First with the interpreter:
 
 ```
 $ time ruby interpret2.rb benchmark.doggolang 
@@ -155,7 +185,7 @@ user	0m4.110s
 sys	0m0.010s
 ```
 
-That's better. The ruby interpreter is pretty good, but the compiled version runs more than 1000 times faster.
+That's better. The ruby interpreter is pretty good, but the compiled code runs more than 1000 times faster.
 
 #### Why stop there?
 
@@ -164,7 +194,7 @@ I thought it would be interesting to rewrite the compiler in a type safe languag
 Notice the Tokens, Node and State structs. It's pretty much the same algorithm-wise as the Ruby compiler, and generates exactly the same assembly except for some differences in the label names.
 
 ```
-$ ruby test.rb go
+$ ruby test.rb compile_go
 PASS 1
 PASS 2
 PASS 3
