@@ -1,6 +1,8 @@
 runner = case ARGV[0]
 when 'interpret'
   Proc.new {|file| `ruby interpret.rb #{file}`}
+when 'interpret2'
+  Proc.new {|file| `ruby interpret2.rb #{file}`}
 when 'ruby'
   Proc.new {|file| `ruby compile.rb #{file} | cc -x assembler - lib.s; ./a.out`}
 when 'go'
@@ -8,7 +10,7 @@ when 'go'
   Proc.new {|file| `./compile <#{file} | cc -x assembler - lib.s; ./a.out`}
 end
 
-abort("Specify interpret, ruby or go") if runner.nil?
+abort("Specify interpret, interpret2, ruby or go") if runner.nil?
 
 files = ["test1.doggolang", "test2.doggolang", "test3.doggolang", "test4.doggolang", "samantha.doggolang", "precedence.doggolang"]
 results = [11, 15, 105, 19, 64185, 23]
