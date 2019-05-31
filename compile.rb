@@ -97,6 +97,11 @@ class State
   def initialize
     @registers = {"%rcx": true, "%rsi": true, "%rdi": true, "%r8": true, "%r9": true, "%r10": true, "%r11": true, "%r12": true}
     @var_map = {}
+    @label_id = 0
+  end
+  
+  def next_label_id
+    @label_id += 1
   end
   
   def with_reg(node)
@@ -109,7 +114,6 @@ class State
 end
 
 def generate(ast)
-  state = State.new
   [
     ".text",
     ".global _main",
@@ -118,7 +122,7 @@ def generate(ast)
     "main:",
     "pushq %rbp",
     "movq %rsp, %rbp"
-  ] + print_node(ast, state) + [
+  ] + print_node(ast, State.new) + [
     "call print",
     "movq %rbp, %rsp",
     "popq %rbp",
@@ -134,14 +138,14 @@ def print_node(node, state)
     return node.collect{|subnode| print_node(subnode, state)}
   end
 
-  node_id = node.object_id
+  label_id = state.next_label_id # used to uniquely identify branch labels
   
   case node[:type]
   when :assign
     if state.var_map[node[:lvalue][:value]]
       print_node(node[:rvalue], state) + ["movq %rax, #{state.var_map[node[:lvalue][:value]]}(%rbp)"]
     else
-      # This is the offset from rbp
+      # This sets the offset from rbp for this variable
       state.var_map[node[:lvalue][:value]] = state.var_map.count * -8 - 8
       print_node(node[:rvalue], state) + ["pushq %rax"]
     end
@@ -162,41 +166,41 @@ def print_node(node, state)
     state.with_reg(node) {|r| [
       "cmpq %rax, #{r}",
       "movq $1, %rax",
-      "jl lt#{node_id}",
+      "jl lt#{label_id}",
       "movq $0, %rax",
-      "lt#{node_id}:"
+      "lt#{label_id}:"
     ]}
   when :gt
     state.with_reg(node) {|r| [
       "cmpq %rax, #{r}",
       "movq $1, %rax",
-      "jg gt#{node_id}",
+      "jg gt#{label_id}",
       "movq $0, %rax",
-      "gt#{node_id}:"
+      "gt#{label_id}:"
     ]}
   when :if
     print_node(node[:condition], state) + [
       "cmpq $0, %rax",
-      "je else#{node_id}"
+      "je else#{label_id}"
     ] + print_node(node[:then], state) + [
-      "jmp endif#{node_id}",
-      "else#{node_id}:"
+      "jmp endif#{label_id}",
+      "else#{label_id}:"
     ] + print_node(node[:else], state) + [
-      "endif#{node_id}:"
+      "endif#{label_id}:"
     ]
   when :while
     [
-      "while#{node_id}:"
+      "while#{label_id}:"
     ] + print_node(node[:condition], state) + [
       "cmpq $0, %rax",
-      "je endwhile#{node_id}"
+      "je endwhile#{label_id}"
     ] + print_node(node[:do], state) + [
-      "jmp while#{node_id}",
-      "endwhile#{node_id}:"
+      "jmp while#{label_id}",
+      "endwhile#{label_id}:"
     ]
   else
     []
   end
 end
 
-puts generate(parse_block(Tokens.new)).join("\n")
+puts generate(parse_block(Tokens.new))
