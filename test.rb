@@ -4,7 +4,8 @@ when 'interpret'
 when 'ruby'
   Proc.new {|file| `ruby compile.rb #{file} | cc -x assembler - lib.s; ./a.out`}
 when 'go'
-  Proc.new {|file| `go run compile.go <#{file} | cc -x assembler - lib.s; ./a.out`}
+  `go build compile.go`
+  Proc.new {|file| `./compile <#{file} | cc -x assembler - lib.s; ./a.out`}
 end
 
 abort("Specify interpret, ruby or go") if runner.nil?

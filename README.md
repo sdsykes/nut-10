@@ -67,7 +67,7 @@ The code generator walks the ast and generates a small amount of assembly for ea
 
 The first problem is how to store variables, but we have no globals to worry about, so let's just push them on the stack. We take care to record the address offset of each of them.
 
-The second problem is to make sure we can store values temporarily when doing arithmetic and comparison operations. We'll use registers for this. In fact none of the examples need more than one register, but anyway we be flexible and add a choice of 8 (actually there would be even more available if we needed them). On each use we take care to choose an available register, and to mark it in use so that nested operations can work. At some point you will run out of registers though, this is a limitation.
+The second problem is to make sure we can store values temporarily when doing arithmetic and comparison operations. We'll use registers for this. In fact none of the examples need more than one register, but anyway we will be flexible and add a choice of 8 (actually there would be even more available if we needed them). On each use we take care to choose an available register, and to mark it in use so that nested operations can work. At some point you will run out of registers though, this is a limitation.
 
 With this taken care of, the code generator walks each node and produces a list of assembly commands.
 
@@ -124,7 +124,7 @@ The ruby interpreter is pretty good, but the compiled version runs in about one 
 
 I thought it would be interesting to rewrite the compiler in a type safe language, I picked Go. You can look at it [here](https://github.com/sdsykes/nut-10/blob/master/compile.go).
 
-Notice the Tokens, Node and State structs. It's pretty much the same aalgorithm-wise as the Ruby compiler, and generates exactly the same assembly.
+Notice the Tokens, Node and State structs. It's pretty much the same algorithm-wise as the Ruby compiler, and generates exactly the same assembly except for some differences in the label names.
 
 ```
 $ ruby test.rb go
@@ -136,7 +136,7 @@ PASS 5
 PASS 6
 ```
 
-Go is a bit slower to run than Ruby, so the compilations are a noticeably slower. I'm happy with it in general, but it ends up being a bit longer and more wordy than the Ruby solution. In the end I think the Ruby solution is nicer to read, and is more elegant.
+Once the go compiler is compiled, it runs super-fast. I'm happy with it in general, but it ends up being a bit longer and more wordy than the Ruby solution. In the end I think the Ruby solution is nicer to read, and seems more elegant.
 
 ## The answer
 
