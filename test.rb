@@ -10,7 +10,7 @@ end
 abort("Specify interpret, ruby or go") if runner.nil?
 
 files = ["test1.doggolang", "test2.doggolang", "test3.doggolang", "test4.doggolang", "samantha.doggolang", "precedence.doggolang"]
-results = [11, 15, 105, 19, 64185, 42]
+results = [11, 15, 105, 19, 64185, 23]
 
 0.upto(files.size - 1) do |n|
   result = runner.call(files[n])

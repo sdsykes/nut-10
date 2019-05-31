@@ -52,6 +52,18 @@ def priority(operator)
   {times: 3, minus: 2, plus: 2, gt: 1, lt: 1}[operator] || 100
 end
 
+def fix_precedence(expression)
+  # if the op on the right has lower or equal precedence, execute it after
+  if expression.has_key?(:rvalue) && priority(expression[:type]) >= priority(expression[:rvalue][:type])
+    expression = {
+      type: expression[:rvalue][:type], 
+      lvalue: fix_precedence({type: expression[:type], lvalue: expression[:lvalue], rvalue: expression[:rvalue][:lvalue]}), 
+      rvalue: expression[:rvalue][:rvalue]
+    }
+  end
+  expression
+end
+
 def parse_expression(tokens)
   expression = nil
   while tokens.remain?
@@ -73,14 +85,7 @@ def parse_expression(tokens)
         break
       end
     end
-    # fix the tree if the op on the right has lower precedence
-    if expression.has_key?(:rvalue) && priority(expression[:type]) > priority(expression[:rvalue][:type])
-      expression = {
-        type: expression[:rvalue][:type], 
-        lvalue: {type: expression[:type], lvalue: expression[:lvalue], rvalue: expression[:rvalue][:lvalue]}, 
-        rvalue: expression[:rvalue][:rvalue]
-      }
-    end
+    expression = fix_precedence(expression)
   end
   expression
 end

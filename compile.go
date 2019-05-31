@@ -29,6 +29,10 @@ func (t *Tokens) Unconsume() {
 	t.tokenPos -= 1
 }
 
+func priority(operator string) int {
+	return map[string]int{"*": 1, "+": 2, "-": 2, ">": 3, "<": 3}[operator]
+}
+
 type Node struct {
 	nodeType   string
 	subnodes   map[string]*Node
@@ -41,6 +45,13 @@ func (n *Node) lvalue() *Node {
 }
 func (n *Node) rvalue() *Node {
 	return n.subnodes["rvalue"]
+}
+func (n *Node) fixPrecedence() *Node {
+	if n.rvalue() != nil && priority(n.nodeType) <= priority(n.rvalue().nodeType) {
+		return makeLRNode(n.rvalue().nodeType, makeLRNode(n.nodeType, n.lvalue(), n.rvalue().lvalue()).fixPrecedence(), n.rvalue().rvalue())
+	} else {
+		return n
+	}
 }
 
 func makeLRNode(nodeType string, lvalue *Node, rvalue *Node) *Node {
@@ -73,10 +84,6 @@ func parseBlock(tokens *Tokens) *Node {
 	return &Node{"statements", nil, statements, ""}
 }
 
-func priority(operator string) int {
-	return map[string]int{"*": 1, "+": 2, "-": 2, ">": 3, "<": 3}[operator]
-}
-
 func parseExpression(tokens *Tokens) *Node {
 	var expression *Node
 	for tokens.Remain() {
@@ -97,9 +104,7 @@ func parseExpression(tokens *Tokens) *Node {
 			tokens.Unconsume()
 			break
 		}
-		if expression.rvalue() != nil && priority(expression.nodeType) < priority(expression.rvalue().nodeType) {
-			expression = makeLRNode(expression.rvalue().nodeType, makeLRNode(expression.nodeType, expression.lvalue(), expression.rvalue().lvalue()), expression.rvalue().rvalue())
-		}
+		expression = expression.fixPrecedence()
 	}
 	return expression
 }
