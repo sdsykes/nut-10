@@ -46,22 +46,36 @@ A simple recursive descent parser. The rules for Doggolang indicate that everyth
 
 The whole program is in fact a block, so all we need to do is call parse_block and this should return the complete syntax tree. All in all the parsing is not complex, and is achieved in less than 60 lines of code. 
 
-Initially I did not support operator precedence as none of the given examples are affected by it, but it wasn't that hard to add and I am happier with the result. We do this by moving an operator to the top of a node subtree when we encounter it and the preceding operator was of higher precedence.
+Initially I did not support operator precedence as none of the given examples are affected by it, but it wasn't that hard to add and I am happier with the result. So in the compiler, minus and plus have a lower precedence than multiplication. This is done by moving an operator to the top of a node subtree when we encounter it if the preceding operator was of higher or equal precedence.
+
+```
+8 * 6 + 7
+
+    initial          transformed
+       *                 +
+      / \               / \
+     /   \             /   \
+    8     +     ->    *     7
+         / \         / \
+        6   7       8   6
+```
+
+This transformation must be executed recursively on the left subtree.
 
 #### Generate
 The code generator walks the ast and generates a small amount of assembly for each node.
 
 The first problem is how to store variables, but we have no globals to worry about, so let's just push them on the stack. We take care to record the address offset of each of them.
 
-The second problem is to make sure we can store values temporarily when doing arithmetic and comparison operations. We'll use registers for this. In fact none of the examples need more than one register, but anyway we can take care to choose an available register, and to mark it in use so that nested operations can work. At some point you will run out of registers though, this is a limitation.
+The second problem is to make sure we can store values temporarily when doing arithmetic and comparison operations. We'll use registers for this. In fact none of the examples need more than one register, but anyway we be flexible and add a choice of 8 (actually there would be even more available if we needed them). On each use we take care to choose an available register, and to mark it in use so that nested operations can work. At some point you will run out of registers though, this is a limitation.
 
 With this taken care of, the code generator walks each node and produces a list of assembly commands.
 
-Finally, we need to print the result, For this I wrote a simple routine to print a positive integer, which is the only function in the compiler's library, the file lib.s. The call to this is added to the end of the assembly, then it's ready.
+Finally, we need to add some assembly to print the result of the progam in decimal. For this I wrote a simple routine to print a positive integer, which is the only function in the compiler's library, the file lib.s. The call to this is added to the end of the assembly, then it's ready.
 
 The code generator is the perhaps the hardest part of this compiler to write, and weighs about 100 lines of code.
 
-With a small amount of care the generated assembly will work both on Mac and Linux.
+With a small amount of care the generated assembly will work both on Mac and Linux - the syscall for printing a character is a little different for instance, but there are no ill effects if we call both.
 
 And finally (and after admittedly a fair bit of debugging) it does in fact work:
 
@@ -75,7 +89,7 @@ PASS 5
 PASS 6
 ```
 
-The whole compiler is approximately 175 SLOC. You can find it [here](https://github.com/sdsykes/nut-10/blob/master/compile.rb).
+The whole compiler is approximately 180 SLOC. You can find it [here](https://github.com/sdsykes/nut-10/blob/master/compile.rb).
 
 #### Performance
 
