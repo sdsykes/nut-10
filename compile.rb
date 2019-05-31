@@ -47,9 +47,10 @@ def parse_block(tokens)
 end
 
 OPERATORS = {"+": :plus, "-": :minus, "*": :times, ">": :gt, "<": :lt}
+HIGH_PRIORITY = 100
 
 def priority(operator)
-  {times: 3, minus: 2, plus: 2, gt: 1, lt: 1}[operator] || 100
+  {times: 3, minus: 2, plus: 2, gt: 1, lt: 1}[operator] || HIGH_PRIORITY
 end
 
 def fix_precedence(expression)
