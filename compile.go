@@ -40,15 +40,15 @@ type Node struct {
 	value      string
 }
 
-func (n *Node) lvalue() *Node {
+func (n *Node) Lvalue() *Node {
 	return n.subnodes["lvalue"]
 }
-func (n *Node) rvalue() *Node {
+func (n *Node) Rvalue() *Node {
 	return n.subnodes["rvalue"]
 }
-func (n *Node) fixPrecedence() *Node {
-	if n.rvalue() != nil && priority(n.nodeType) <= priority(n.rvalue().nodeType) {
-		return makeLRNode(n.rvalue().nodeType, makeLRNode(n.nodeType, n.lvalue(), n.rvalue().lvalue()).fixPrecedence(), n.rvalue().rvalue())
+func (n *Node) FixPrecedence() *Node {
+	if n.Rvalue() != nil && priority(n.nodeType) <= priority(n.Rvalue().nodeType) {
+		return makeLRNode(n.Rvalue().nodeType, makeLRNode(n.nodeType, n.Lvalue(), n.Rvalue().Lvalue()).FixPrecedence(), n.Rvalue().Rvalue())
 	} else {
 		return n
 	}
@@ -104,7 +104,7 @@ func parseExpression(tokens *Tokens) *Node {
 			tokens.Unconsume()
 			break
 		}
-		expression = expression.fixPrecedence()
+		expression = expression.FixPrecedence()
 	}
 	return expression
 }
@@ -116,13 +116,13 @@ type State struct {
 
 var state *State
 
-func (s *State) withReg(node *Node, f func(r string) []string) []string {
+func (s *State) WithReg(node *Node, f func(r string) []string) []string {
 	var asm []string
 	for reg, used := range s.registers {
 		if !used {
 			s.registers[reg] = true
-			asm = append(node.lvalue().printNode(), fmt.Sprintf("movq %%rax, %s", reg))
-			asm = append(asm, node.rvalue().printNode()...)
+			asm = append(node.Lvalue().PrintNode(), fmt.Sprintf("movq %%rax, %s", reg))
+			asm = append(asm, node.Rvalue().PrintNode()...)
 			asm = append(asm, f(reg)...)
 			s.registers[reg] = false
 			break
@@ -142,7 +142,7 @@ func generate(ast *Node) []string {
 		"pushq %rbp",
 		"movq %rsp, %rbp",
 	}
-	asm = append(asm, ast.printNode()...)
+	asm = append(asm, ast.PrintNode()...)
 	asm = append(asm,
 		"call print",
 		"movq %rbp, %rsp",
@@ -152,26 +152,26 @@ func generate(ast *Node) []string {
 	return asm
 }
 
-func (node *Node) printNode() []string {
+func (node *Node) PrintNode() []string {
 	var asm []string
 	if node.nodeType == "statements" {
 		for _, statement := range node.statements {
-			asm = append(asm, statement.printNode()...)
+			asm = append(asm, statement.PrintNode()...)
 		}
 		return asm
 	}
 	node_id := fmt.Sprintf("%p", node)
 	switch node.nodeType {
 	case "assign":
-		if state.varMap[node.lvalue().value] != 0 {
+		if state.varMap[node.Lvalue().value] != 0 {
 			asm = append(
-				node.rvalue().printNode(),
-				fmt.Sprintf("movq %%rax, %d(%%rbp)", state.varMap[node.lvalue().value]),
+				node.Rvalue().PrintNode(),
+				fmt.Sprintf("movq %%rax, %d(%%rbp)", state.varMap[node.Lvalue().value]),
 			)
 		} else {
-			state.varMap[node.lvalue().value] = len(state.varMap)*-8 - 8
+			state.varMap[node.Lvalue().value] = len(state.varMap)*-8 - 8
 			asm = append(
-				node.rvalue().printNode(),
+				node.Rvalue().PrintNode(),
 				"pushq %rax",
 			)
 		}
@@ -180,22 +180,22 @@ func (node *Node) printNode() []string {
 	case "identifier":
 		asm = append(asm, fmt.Sprintf("movq %d(%%rbp), %%rax", state.varMap[node.value]))
 	case "+":
-		asm = state.withReg(node, func(r string) []string {
+		asm = state.WithReg(node, func(r string) []string {
 			return []string{fmt.Sprintf("addq %s, %%rax", r)}
 		})
 	case "-":
-		asm = state.withReg(node, func(r string) []string {
+		asm = state.WithReg(node, func(r string) []string {
 			return []string{
 				fmt.Sprintf("xchg %%rax, %s", r),
 				fmt.Sprintf("subq %s, %%rax", r),
 			}
 		})
 	case "*":
-		asm = state.withReg(node, func(r string) []string {
+		asm = state.WithReg(node, func(r string) []string {
 			return []string{fmt.Sprintf("mulq %s", r)}
 		})
 	case "<":
-		asm = state.withReg(node, func(r string) []string {
+		asm = state.WithReg(node, func(r string) []string {
 			return []string{fmt.Sprintf(
 				"cmpq %%rax, %s", r),
 				"movq $1, %rax",
@@ -205,7 +205,7 @@ func (node *Node) printNode() []string {
 			}
 		})
 	case ">":
-		asm = state.withReg(node, func(r string) []string {
+		asm = state.WithReg(node, func(r string) []string {
 			return []string{
 				fmt.Sprintf("cmpq %%rax, %s", r),
 				"movq $1, %rax",
@@ -215,15 +215,15 @@ func (node *Node) printNode() []string {
 			}
 		})
 	case "if":
-		asm = append(node.subnodes["condition"].printNode(), "cmpq $0, %rax", fmt.Sprintf("je else%s", node_id))
-		asm = append(asm, node.subnodes["then"].printNode()...)
+		asm = append(node.subnodes["condition"].PrintNode(), "cmpq $0, %rax", fmt.Sprintf("je else%s", node_id))
+		asm = append(asm, node.subnodes["then"].PrintNode()...)
 		asm = append(asm, fmt.Sprintf("jmp endif%s", node_id), fmt.Sprintf("else%s:", node_id))
-		asm = append(asm, node.subnodes["else"].printNode()...)
+		asm = append(asm, node.subnodes["else"].PrintNode()...)
 		asm = append(asm, fmt.Sprintf("endif%s:", node_id))
 	case "while":
-		asm = append([]string{fmt.Sprintf("while%s:", node_id)}, node.subnodes["condition"].printNode()...)
+		asm = append([]string{fmt.Sprintf("while%s:", node_id)}, node.subnodes["condition"].PrintNode()...)
 		asm = append(asm, "cmpq $0, %rax", fmt.Sprintf("je endwhile%s", node_id))
-		asm = append(asm, node.subnodes["do"].printNode()...)
+		asm = append(asm, node.subnodes["do"].PrintNode()...)
 		asm = append(asm, fmt.Sprintf("jmp while%s", node_id), fmt.Sprintf("endwhile%s:", node_id))
 	}
 	return asm
