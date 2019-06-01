@@ -55,7 +55,7 @@ end
 
 def fix_precedence(expression)
   # if the op on the right has lower or equal precedence, execute it after
-  if expression.has_key?(:rvalue) && priority(expression[:type]) >= priority(expression[:rvalue][:type])
+  if priority(expression[:type]) >= priority(expression[:rvalue][:type])
     expression = {
       type: expression[:rvalue][:type], 
       lvalue: fix_precedence({type: expression[:type], lvalue: expression[:lvalue], rvalue: expression[:rvalue][:lvalue]}), 
@@ -80,13 +80,12 @@ def parse_expression(tokens)
       expression = {type: :identifier, value: token}
     else
       if OPERATORS.include?(token)
-        expression = {type: OPERATORS[token], lvalue: expression, rvalue: parse_expression(tokens)}
-      else  # must be the start of a new if or while statement
+        expression = fix_precedence({type: OPERATORS[token], lvalue: expression, rvalue: parse_expression(tokens)})
+      else  # we've hit an non-operator token, it'e the end of the expression
         tokens.unconsume
         break
       end
     end
-    expression = fix_precedence(expression)
   end
   expression
 end
