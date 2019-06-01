@@ -132,10 +132,7 @@ def generate(ast)
 end
 
 def print_node(node, state)
-  case node
-  when nil
-    return []
-  when Array
+  if node.is_a? Array
     return node.collect{|subnode| print_node(subnode, state)}
   end
 

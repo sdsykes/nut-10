@@ -92,10 +92,7 @@ def parse_expression(tokens)
 end
 
 def interpret(node, variables)
-  case node
-  when nil
-    return nil
-  when Array
+  if node.is_a? Array
     return node.reduce(nil) {|_, subnode| interpret(subnode, variables)}
   end
 
