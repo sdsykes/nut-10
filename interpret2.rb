@@ -81,7 +81,7 @@ def parse_expression(tokens)
     else
       if OPERATORS.include?(token)
         expression = fix_precedence({type: OPERATORS[token], lvalue: expression, rvalue: parse_expression(tokens)})
-      else  # we've hit an non-operator token, it'e the end of the expression
+      else  # we've hit an non-operator token, it's the end of the expression
         tokens.unconsume
         break
       end
