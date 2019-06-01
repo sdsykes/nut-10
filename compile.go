@@ -47,7 +47,7 @@ func (n *Node) Rvalue() *Node {
 	return n.subnodes["rvalue"]
 }
 func (n *Node) FixPrecedence() *Node {
-	if n.Rvalue() != nil && priority(n.nodeType) <= priority(n.Rvalue().nodeType) {
+	if priority(n.nodeType) <= priority(n.Rvalue().nodeType) {
 		return makeLRNode(n.Rvalue().nodeType, makeLRNode(n.nodeType, n.Lvalue(), n.Rvalue().Lvalue()).FixPrecedence(), n.Rvalue().Rvalue())
 	} else {
 		return n
@@ -99,12 +99,11 @@ func parseExpression(tokens *Tokens) *Node {
 			}
 			expression = &Node{"identifier", nil, nil, token}
 		} else if priority(symbol) != 0 {
-			expression = makeLRNode(symbol, expression, parseExpression(tokens))
+			expression = makeLRNode(symbol, expression, parseExpression(tokens)).FixPrecedence()
 		} else {
 			tokens.Unconsume()
 			break
 		}
-		expression = expression.FixPrecedence()
 	}
 	return expression
 }
